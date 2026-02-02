@@ -981,21 +981,37 @@
 
     function handleTypebotMessage(event) {
       var data = event && event.data;
-      if (!data) return;
+      
+      // Log TODAS as mensagens recebidas para debug
+      devLog("[leadlimpo-track] Mensagem recebida (raw):", {
+        origin: event.origin,
+        data: data,
+        dataType: typeof data
+      });
+      
+      if (!data) {
+        devLog("[leadlimpo-track] Mensagem sem data, ignorando");
+        return;
+      }
 
       // Tenta parsear se vier como string JSON
       if (typeof data === "string") {
         try {
           var parsed = JSON.parse(data);
           if (parsed && typeof parsed === "object") {
+            devLog("[leadlimpo-track] Mensagem parseada de string:", parsed);
             data = parsed;
           }
         } catch (e) {
           // ignora strings não‑JSON
+          devLog("[leadlimpo-track] Falha ao parsear mensagem como JSON:", e);
         }
       }
 
-      if (!data || typeof data !== "object") return;
+      if (!data || typeof data !== "object") {
+        devLog("[leadlimpo-track] Mensagem não é objeto, ignorando:", typeof data);
+        return;
+      }
 
       // Heurísticas para identificar mensagens vindas do Typebot
       var fromTypebot =
@@ -1006,7 +1022,18 @@
         (typeof data.event === "string" &&
           data.event.toLowerCase().indexOf("typebot") === 0);
 
-      if (!fromTypebot) return;
+      devLog("[leadlimpo-track] Verificação Typebot:", {
+        fromTypebot: fromTypebot,
+        source: data.source,
+        from: data.from,
+        type: data.type,
+        event: data.event
+      });
+
+      if (!fromTypebot) {
+        devLog("[leadlimpo-track] Mensagem não identificada como Typebot, ignorando");
+        return;
+      }
 
       devLog("[leadlimpo-track] Mensagem potencial do Typebot:", data);
 
@@ -1074,6 +1101,7 @@
     }
 
     window.addEventListener("message", handleTypebotMessage);
+    devLog("[leadlimpo-track] Listener de mensagens do Typebot registrado");
   }
 
   function init() {

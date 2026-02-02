@@ -39,8 +39,9 @@
 
   // Flag interno de debug que pode ser ligado em produção.
   // Pode ser controlado via:
-  // - window.LEADLIMPO_DEBUG = true (global antes/depois do script)
+  // - Atributo data no script (ex.: data-leadlimpo-debug="true")
   // - leadlimpoTrack.setDebug(true) (API pública)
+  // - (Opcionalmente, para power users) window.LEADLIMPO_DEBUG = true
   var debugEnabled = false;
 
   // Cache em memória para dedupe de eventos Meta
@@ -75,6 +76,7 @@
     if (debugEnabled) return true;
 
     // Prioridade 2: flag global para facilitar debug em produção
+    // (uso avançado, não recomendado para a maioria das integrações)
     // Aceita true / "true" / 1 / "1"
     try {
       var globalFlag =
@@ -536,6 +538,49 @@
     devLog("[leadlimpo-track] Debug mode atualizado:", debugEnabled);
   }
 
+  function applyDebugFromScriptTag() {
+    if (!isBrowser()) return;
+
+    try {
+      var doc = document;
+      var script =
+        doc.currentScript || doc.getElementById("leadlimpo-track-sdk");
+
+      if (!script) {
+        var scripts = doc.getElementsByTagName("script");
+        for (var i = 0; i < scripts.length; i++) {
+          var s = scripts[i];
+          if (
+            s &&
+            typeof s.src === "string" &&
+            s.src.indexOf("leadlimpo-track.js") !== -1
+          ) {
+            script = s;
+            break;
+          }
+        }
+      }
+
+      if (!script) return;
+
+      var attr = script.getAttribute("data-leadlimpo-debug");
+      if (attr == null) return;
+
+      var normalized = String(attr).toLowerCase();
+      var shouldDebug =
+        normalized === "" ||
+        normalized === "true" ||
+        normalized === "1" ||
+        normalized === "yes";
+
+      if (shouldDebug) {
+        setDebug(true);
+      }
+    } catch (e) {
+      // ignora qualquer erro de detecção de script
+    }
+  }
+
   function getContext() {
     return {
       sessionId: context.sessionId,
@@ -993,6 +1038,9 @@
   function init() {
     if (!isBrowser()) return;
 
+    // aplica flag de debug caso o script tenha sido marcado com data-leadlimpo-debug
+    applyDebugFromScriptTag();
+
     // carrega contexto salvo, se existir
     loadContextFromStorage();
 
@@ -1052,13 +1100,9 @@
       window.leadlimpoTrack = api;
     }
 
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", function () {
-        init();
-      });
-    } else {
-      init();
-    }
+    // A partir daqui, a inicialização passa a ser responsabilidade
+    // explícita de quem integra, via leadlimpoTrack.init(), normalmente
+    // feita no snippet (ver README).
   }
 })();
 

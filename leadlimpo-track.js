@@ -1104,21 +1104,48 @@
     devLog("[leadlimpo-track] Listener de mensagens do Typebot registrado");
 
     // Alternativa: escuta eventos no dataLayer (caso o Typebot envie eventos via GTM)
-    var originalPush = window.dataLayer && window.dataLayer.push;
-    if (originalPush && typeof originalPush === "function") {
-      window.dataLayer.push = function () {
+    function setupDataLayerInterception() {
+      ensureDataLayer(); // Garante que dataLayer existe
+      
+      var dataLayer = window.dataLayer;
+      if (!dataLayer || !Array.isArray(dataLayer)) {
+        devLog("[leadlimpo-track] dataLayer não é um array, tentando novamente...");
+        setTimeout(setupDataLayerInterception, 500);
+        return;
+      }
+
+      // Se já foi interceptado, não faz nada
+      if (dataLayer._leadlimpoIntercepted) {
+        devLog("[leadlimpo-track] dataLayer já foi interceptado anteriormente");
+        return;
+      }
+
+      var originalPush = dataLayer.push;
+      if (!originalPush || typeof originalPush !== "function") {
+        devLog("[leadlimpo-track] dataLayer.push não é uma função");
+        return;
+      }
+
+      dataLayer.push = function () {
         // eslint-disable-next-line prefer-rest-params
         var args = Array.prototype.slice.call(arguments);
         devLog("[leadlimpo-track] dataLayer.push interceptado:", args);
         
         // Chama o push original
-        var result = originalPush.apply(window.dataLayer, args);
+        var result = originalPush.apply(dataLayer, args);
         
         // Verifica se algum evento parece ser do Typebot
         args.forEach(function (item) {
           if (item && typeof item === "object") {
             var eventName = item.event || item.type || "";
             var eventNameLower = String(eventName).toLowerCase();
+            
+            devLog("[leadlimpo-track] Verificando evento do dataLayer:", {
+              event: eventName,
+              blockId: item.blockId,
+              stepId: item.stepId,
+              answer: item.answer
+            });
             
             if (
               eventNameLower.indexOf("typebot") !== -1 ||
@@ -1134,8 +1161,16 @@
         
         return result;
       };
-      devLog("[leadlimpo-track] Interceptação do dataLayer.push configurada");
+      
+      dataLayer._leadlimpoIntercepted = true;
+      devLog("[leadlimpo-track] Interceptação do dataLayer.push configurada com sucesso");
     }
+
+    // Tenta configurar imediatamente
+    setupDataLayerInterception();
+    
+    // Tenta novamente após um delay (caso o GTM carregue depois)
+    setTimeout(setupDataLayerInterception, 1000);
   }
 
   function init() {

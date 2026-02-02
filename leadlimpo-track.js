@@ -1102,6 +1102,40 @@
 
     window.addEventListener("message", handleTypebotMessage);
     devLog("[leadlimpo-track] Listener de mensagens do Typebot registrado");
+
+    // Alternativa: escuta eventos no dataLayer (caso o Typebot envie eventos via GTM)
+    var originalPush = window.dataLayer && window.dataLayer.push;
+    if (originalPush && typeof originalPush === "function") {
+      window.dataLayer.push = function () {
+        // eslint-disable-next-line prefer-rest-params
+        var args = Array.prototype.slice.call(arguments);
+        devLog("[leadlimpo-track] dataLayer.push interceptado:", args);
+        
+        // Chama o push original
+        var result = originalPush.apply(window.dataLayer, args);
+        
+        // Verifica se algum evento parece ser do Typebot
+        args.forEach(function (item) {
+          if (item && typeof item === "object") {
+            var eventName = item.event || item.type || "";
+            var eventNameLower = String(eventName).toLowerCase();
+            
+            if (
+              eventNameLower.indexOf("typebot") !== -1 ||
+              eventNameLower.indexOf("bot") !== -1 ||
+              (item.blockId || item.stepId || item.answer)
+            ) {
+              devLog("[leadlimpo-track] Possível evento do Typebot no dataLayer:", item);
+              // Tenta processar como se fosse uma mensagem do Typebot
+              handleTypebotMessage({ data: item, origin: window.location.origin });
+            }
+          }
+        });
+        
+        return result;
+      };
+      devLog("[leadlimpo-track] Interceptação do dataLayer.push configurada");
+    }
   }
 
   function init() {

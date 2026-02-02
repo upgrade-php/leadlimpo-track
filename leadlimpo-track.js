@@ -1136,10 +1136,10 @@
   };
 
   if (isBrowser()) {
-    // evita sobrescrever se já existir (possível em ambientes com múltiplos scripts)
-    if (!window.leadlimpoTrack) {
-      window.leadlimpoTrack = api;
-    }
+    // Sempre expõe a API mais recente no escopo global.
+    // Se já existir uma versão anterior em window.leadlimpoTrack,
+    // ela será sobrescrita para evitar incompatibilidades de versão.
+    window.leadlimpoTrack = api;
 
     // Em ambientes hospedados pelo Typebot, fazemos auto-init
     // para não depender de snippet externo.

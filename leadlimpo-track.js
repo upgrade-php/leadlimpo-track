@@ -37,6 +37,12 @@
     stepId: undefined,
   };
 
+  // Flag interno de debug que pode ser ligado em produção.
+  // Pode ser controlado via:
+  // - window.LEADLIMPO_DEBUG = true (global antes/depois do script)
+  // - leadlimpoTrack.setDebug(true) (API pública)
+  var debugEnabled = false;
+
   // Cache em memória para dedupe de eventos Meta
   var metaEventCache = {};
 
@@ -62,8 +68,35 @@
     return true;
   }
 
+  function isDebugEnabled() {
+    if (!isBrowser()) return false;
+
+    // Prioridade 1: flag setado via API pública
+    if (debugEnabled) return true;
+
+    // Prioridade 2: flag global para facilitar debug em produção
+    // Aceita true / "true" / 1 / "1"
+    try {
+      var globalFlag =
+        typeof window !== "undefined" ? window.LEADLIMPO_DEBUG : undefined;
+      if (
+        globalFlag === true ||
+        globalFlag === "true" ||
+        globalFlag === 1 ||
+        globalFlag === "1"
+      ) {
+        return true;
+      }
+    } catch (e) {
+      // ignora erros de acesso ao window
+    }
+
+    // Comportamento padrão: debug só em ambientes não‑produtivos
+    return !isProduction();
+  }
+
   function devLog() {
-    if (!isProduction() && typeof console !== "undefined" && console.log) {
+    if (isDebugEnabled() && typeof console !== "undefined" && console.log) {
       // eslint-disable-next-line prefer-rest-params
       console.log.apply(console, arguments);
     }
@@ -496,6 +529,11 @@
     }
 
     persistContextToStorage();
+  }
+
+  function setDebug(flag) {
+    debugEnabled = !!flag;
+    devLog("[leadlimpo-track] Debug mode atualizado:", debugEnabled);
   }
 
   function getContext() {
@@ -994,6 +1032,7 @@
     getContext: getContext,
     getUTMs: getCombinedUTMs,
     saveLeadContact: saveLeadContact,
+    setDebug: setDebug,
 
     // eventos de funil
     trackViewContent: trackViewContent,

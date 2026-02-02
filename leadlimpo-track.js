@@ -93,6 +93,30 @@
       // ignora erros de acesso ao window
     }
 
+    // Prioridade 3: querystring ?leadlimpo_debug=1 (ou true/yes)
+    try {
+      var search = window.location && window.location.search;
+      if (search) {
+        var params = new URLSearchParams(search);
+        var qs =
+          params.get("leadlimpo_debug") || params.get("leadlimpo-debug");
+        if (qs != null) {
+          var normalized = String(qs).toLowerCase();
+          if (
+            normalized === "" ||
+            normalized === "1" ||
+            normalized === "true" ||
+            normalized === "yes"
+          ) {
+            debugEnabled = true;
+            return true;
+          }
+        }
+      }
+    } catch (e) {
+      // ignora erro ao ler querystring
+    }
+
     // Comportamento padrão: debug só em ambientes não‑produtivos
     return !isProduction();
   }
@@ -929,6 +953,23 @@
   // INICIALIZAÇÃO
   // ============================================================
 
+  function isTypebotHostedEnvironment() {
+    if (!isBrowser()) return false;
+    try {
+      var host = window.location && window.location.hostname;
+      if (!host) return false;
+      host = String(host).toLowerCase();
+      // Cobre domínios típicos do Typebot hospedado
+      return (
+        host === "typebot.io" ||
+        host === "app.typebot.io" ||
+        host.endsWith(".typebot.io")
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Integração best-effort com Typebot em modo hospedado (link direto)
   var typebotHostedIntegrationInitialized = false;
 
@@ -1100,9 +1141,20 @@
       window.leadlimpoTrack = api;
     }
 
-    // A partir daqui, a inicialização passa a ser responsabilidade
-    // explícita de quem integra, via leadlimpoTrack.init(), normalmente
-    // feita no snippet (ver README).
+    // Em ambientes hospedados pelo Typebot, fazemos auto-init
+    // para não depender de snippet externo.
+    if (isTypebotHostedEnvironment()) {
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () {
+          init();
+        });
+      } else {
+        init();
+      }
+    }
+
+    // Em páginas próprias, a recomendação é inicializar via snippet
+    // chamando leadlimpoTrack.init() explicitamente.
   }
 })();
 

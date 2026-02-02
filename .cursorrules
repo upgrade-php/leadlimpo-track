@@ -1,0 +1,32 @@
+# Cursor Rules para leadlimpo-track
+
+## Contexto do Projeto
+
+Este é um projeto de biblioteca JavaScript standalone para tracking de funis de geração de leads.
+- Biblioteca: `leadlimpo-track.js`
+- Integra com Meta Pixel (fbq) e Google Tag Manager (dataLayer)
+- Suporta Typebot e outros funis de chat
+- Expõe API global: `window.leadlimpoTrack`
+
+## Regras de Desenvolvimento
+
+1. **Compatibilidade**: Manter compatibilidade com browsers modernos (ES5+)
+2. **Sem dependências**: Biblioteca deve ser standalone
+3. **Debug**: Sempre incluir logs de debug quando `setDebug(true)` estiver ativo
+4. **Storage**: Usar `sessionStorage` para dados de sessão, `localStorage` para cache de dedupe
+5. **Error handling**: Nunca quebrar a página, sempre usar try/catch em operações críticas
+
+## Padrões de Código
+
+- Usar `var` (não `let`/`const`) para compatibilidade ES5
+- Funções devem ser nomeadas e não arrow functions
+- Comentários em português para documentação interna
+- Logs de debug sempre com prefixo `[leadlimpo-track]`
+
+## Estrutura de Arquivos
+
+- `leadlimpo-track.js` - Biblioteca principal
+- `README.md` - Snippet de instalação
+- `LEADLIMPO_TRACK_RULES.md` - Regras de negócio
+- `LEADLIMPO_TRACK_INTEGRATION.md` - Guia de integração
+- `TYPEBOT_TRACKING_BLOCKS.md` - Blocos Code para Typebot
